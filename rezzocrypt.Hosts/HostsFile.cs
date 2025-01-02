@@ -16,8 +16,12 @@ namespace rezzocrypt.Hosts
         /// <param name="path"></param>
         internal HostsFile(string path)
         {
-            if (string.IsNullOrEmpty(path) || !File.Exists(path))
+            if (string.IsNullOrEmpty(path))
                 throw new FileNotFoundException(null, path);
+            if (!File.Exists(path))
+            {
+                File.Create(path).Close();
+            }
             Path = path;
             using var reader = new StreamReader(File.OpenRead(Path));
             while (!reader.EndOfStream)

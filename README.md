@@ -12,6 +12,6 @@ dotnet add package rezzocrypt.Hosts
 using rezzocrypt.Hosts;
 
 // open the file
-var file = Hosts.OpenFile(/* optional file path */);
+var file = HostsFile.OpenFile(/* optional file path */);
 
 ```

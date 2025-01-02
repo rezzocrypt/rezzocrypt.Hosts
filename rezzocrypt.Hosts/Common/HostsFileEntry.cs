@@ -51,7 +51,7 @@ namespace rezzocrypt.Hosts.Common
 
             if (_rawData.StartsWith('#'))
             {
-                Comment = _rawData[1..];
+                Comment = Trim(_rawData[1..]);
                 Type = EntryType.Comment;
                 return;
             }
