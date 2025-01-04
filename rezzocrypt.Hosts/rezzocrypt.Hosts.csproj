@@ -12,6 +12,8 @@
     <RepositoryType>git</RepositoryType>
     <Authors>Aleksey Vinogradov</Authors>
     <PackageProjectUrl>https://github.com/rezzocrypt/rezzocrypt.Hosts</PackageProjectUrl>
+    <PackageTags>cross platform hosts file editor</PackageTags>
+    <Version>1.0.1</Version>
   </PropertyGroup>
 
   <ItemGroup>

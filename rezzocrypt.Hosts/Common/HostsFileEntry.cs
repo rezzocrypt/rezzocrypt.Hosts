@@ -14,6 +14,38 @@ namespace rezzocrypt.Hosts.Common
         internal static string? Trim(string? data) => data?.Trim(_charsForTrim);
         //raw data
         internal readonly string? _rawData;
+
+        private void parseData(string? rawData = null)
+        {
+            rawData = Trim(rawData);
+            if (rawData == null || rawData.Length == 0)
+            {
+                Type = EntryType.Empty;
+                return;
+            }
+
+            if (rawData.StartsWith('#'))
+            {
+                Comment = Trim(rawData[1..]);
+                Type = EntryType.Comment;
+                return;
+            }
+
+            var splittedValues = rawData
+                .Split(['\t', ' '], StringSplitOptions.RemoveEmptyEntries)
+                .Select(x => x.Trim(_charsForTrim))
+                .ToArray();
+            if (splittedValues.Length < 2)
+                return;
+            if (!IPAddress.TryParse(splittedValues[0], out IPAddress? address) || address == null)
+                return;
+            if (!splittedValues[1..].All(val => _hostNameRegex.IsMatch(val)))
+                return;
+
+            HostEntry = (address, splittedValues[1], splittedValues[2..]);
+            Type = EntryType.Host;
+        }
+
         /// <summary>
         /// Entry type
         /// </summary>
@@ -40,60 +72,46 @@ namespace rezzocrypt.Hosts.Common
         /// Hosts file parser
         /// </summary>
         /// <param name="rawData">Hosts file line</param>
-        public HostsFileEntry(string? rawData = null)
+        public HostsFileEntry(string? rawData = null) => parseData(rawData);
+
+        /// <summary>
+        /// Uncomment currrent line
+        /// </summary>
+        public void UncommentLine()
         {
-            _rawData = Trim(rawData);
-            if (_rawData == null || _rawData.Length == 0)
-            {
-                Type = EntryType.Empty;
-                return;
-            }
-
-            if (_rawData.StartsWith('#'))
-            {
-                Comment = Trim(_rawData[1..]);
-                Type = EntryType.Comment;
-                return;
-            }
-
-            var splittedValues = _rawData
-                .Split(['\t', ' '], StringSplitOptions.RemoveEmptyEntries)
-                .Select(x => x.Trim(_charsForTrim))
-                .ToArray();
-            if (splittedValues.Length < 2)
-                return;
-            if (!IPAddress.TryParse(splittedValues[0], out IPAddress? address) || address == null)
-                return;
-            if (!splittedValues[1..].All(val => _hostNameRegex.IsMatch(val)))
-                return;
-
-            HostEntry = (address, splittedValues[1], splittedValues[2..]);
-            Type = EntryType.Host;
+            if (Type == EntryType.Comment)
+                parseData(Comment);
+        }
+        /// <summary>
+        /// Comment currrent line
+        /// </summary>
+        public void CommentLine()
+        {
+            if (Type != EntryType.Comment)
+                parseData($"# {ToString()}");
         }
 
         /// <summary>
         /// Create Comment entry
         /// </summary>
         /// <param name="comment"></param>
-        public static HostsFileEntry SetComment(string comment) => new() { Comment = comment, Type = EntryType.Comment };
-
+        public static HostsFileEntry GetComment(string comment) => new() { Comment = comment, Type = EntryType.Comment };
         /// <summary>
         /// Create Host entry
         /// </summary>
         /// <param name="address">IP address of the host</param>
         /// <param name="canonicalHostname">Canonical hostname for entry</param>
         /// <param name="aliases">Aliases</param>
-        public static HostsFileEntry SetHost(IPAddress address, string canonicalHostname, params string[] aliases)
+        public static HostsFileEntry GetHost(IPAddress address, string canonicalHostname, params string[] aliases)
         {
             if (canonicalHostname.Length == 0 || !_hostNameRegex.IsMatch(canonicalHostname) || !aliases.All(a => _hostNameRegex.IsMatch(a)))
                 throw new FormatException("The specified hostname(s) are not valid");
 
             return new() { Type = EntryType.Host, HostEntry = (address, canonicalHostname, aliases) };
         }
-
         /// <summary>
         /// Create empty entry
         /// </summary>
-        public static HostsFileEntry SetEmpty() => new() { Type = EntryType.Empty };
+        public static HostsFileEntry GetEmpty() => new() { Type = EntryType.Empty };
     }
 }

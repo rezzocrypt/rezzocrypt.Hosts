@@ -7,21 +7,29 @@ namespace rezzocrypt.Hosts
 {
     public class HostsFile
     {
-        public string Path { get; private set; }
+        /// <summary>
+        /// File path
+        /// </summary>
+        public string Path { get; private set; } = string.Empty;
+        /// <summary>
+        /// File lines
+        /// </summary>
         public readonly List<HostsFileEntry> Entries = [];
 
         /// <summary>
-        /// Rade hosts file
+        /// Create host file container
         /// </summary>
-        /// <param name="path"></param>
-        internal HostsFile(string path)
+        public HostsFile() { }
+        /// <summary>
+        /// Open hosts file
+        /// </summary>
+        /// <param name="path">File path</param>
+        public HostsFile(string path)
         {
             if (string.IsNullOrEmpty(path))
                 throw new FileNotFoundException(null, path);
             if (!File.Exists(path))
-            {
                 File.Create(path).Close();
-            }
             Path = path;
             using var reader = new StreamReader(File.OpenRead(Path));
             while (!reader.EndOfStream)
@@ -29,15 +37,25 @@ namespace rezzocrypt.Hosts
         }
 
         /// <summary>
-        /// Writes the hosts file to disk
+        /// Write hosts file to disk
         /// </summary>
-        public void Save()
+        public void Save() => SaveAs(Path);
+
+        /// <summary>
+        /// Save hosts to new file
+        /// </summary>
+        /// <param name="path">Path to new file</param>
+        /// <exception cref="FileNotFoundException"></exception>
+        public HostsFile SaveAs(string path)
         {
+            if (string.IsNullOrEmpty(path))
+                throw new FileNotFoundException("Use SaveAs and not empty Path for new save");
+
             var lines = Entries.Select(item => item.ToString()).ToArray();
 
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                var fi = new FileInfo(Path);
+                var fi = new FileInfo(path);
                 // windows security moment
                 FileSecurity fileS = fi.GetAccessControl();
                 fi.Attributes &= ~FileAttributes.ReadOnly;
@@ -45,7 +63,7 @@ namespace rezzocrypt.Hosts
                 var rule = new FileSystemAccessRule(cu, FileSystemRights.Write, AccessControlType.Allow);
                 fileS.SetAccessRule(rule);
                 fi.SetAccessControl(fileS);
-                using var sw = new StreamWriter(Path);
+                using var sw = new StreamWriter(path);
                 foreach (var line in lines)
                     sw.WriteLine(line);
                 // restore old rules
@@ -55,11 +73,13 @@ namespace rezzocrypt.Hosts
             }
             else
             {
-                using var sw = new StreamWriter(Path);
+                using var sw = new StreamWriter(path);
                 foreach (var line in lines)
                     sw.WriteLine(line);
             }
-
+            return path == Path
+                ? this
+                : new HostsFile(path);
         }
 
         /// <summary>
